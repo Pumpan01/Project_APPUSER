@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'home_page.dart';
 
 class WaterBillPage extends StatefulWidget {
   final int userId;
@@ -31,7 +32,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
     try {
       // ดึงข้อมูลผู้ใช้จาก API ด้วย userId
       final responseUser = await http.get(
-        Uri.parse("http://10.0.2.2:4000/api/users/${widget.userId}"),
+        Uri.parse("https://api.horplus.work/api/users/${widget.userId}"),
       );
       if (responseUser.statusCode != 200) {
         setState(() {
@@ -47,7 +48,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
 
       // ใช้ room_number ของผู้ใช้ในการดึงข้อมูลบิลของห้องนั้น
       final response = await http.get(
-        Uri.parse("http://10.0.2.2:4000/api/bills/room/${userData['room_number']}"),
+        Uri.parse("https://api.horplus.work/api/bills/room/${userData['room_number']}"),
       );
       if (response.statusCode == 200) {
         List<dynamic> bills = json.decode(response.body);
@@ -138,7 +139,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
     Duration difference = currentTime.difference(transTime);
 
     // ถ้าเวลาการโอนเกิน 30 นาที
-    if (difference.inMinutes > 30) {
+    if (difference.inMinutes > 100000) {
       print("❌ เวลาการโอนเกิน 30 นาที");
       return false;
     }
@@ -235,7 +236,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
 
         var uploadRequest = http.MultipartRequest(
           'POST',
-          Uri.parse("http://10.0.2.2:4000/api/upload"),
+          Uri.parse("https://api.horplus.work/api/upload"),
         );
 
         uploadRequest.files.add(
@@ -253,7 +254,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
               DateTime.now().toIso8601String().split("T")[0];
 
           var updateResponse = await http.put(
-            Uri.parse("http://10.0.2.2:4000/api/bills/$billId"),
+            Uri.parse("https://api.horplus.work/api/bills/$billId"),
             headers: {"Content-Type": "application/json"},
             body: json.encode({
               "slip_path": slipPath,
@@ -391,7 +392,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
         : bill['total_amount'] ?? 0;
 
     var meter = bill['meter'];
-    String imageUrl = 'http://10.0.2.2:4000/$meter';
+    String imageUrl = 'https://api.horplus.work/$meter';
 
     showDialog(
       context: context,
@@ -558,115 +559,221 @@ class _WaterBillPageState extends State<WaterBillPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF3E0), // เปลี่ยนพื้นหลังเป็นสีพีชอ่อน
-      appBar: AppBar(
-        title: Text('รายละเอียดการชำระเงิน', style: GoogleFonts.prompt()),
-        backgroundColor: const Color(0xFFFF8800),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _billsData == null || _billsData!.isEmpty
-              ? const Center(child: Text("ไม่พบบิลของคุณ"))
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _billsData!.length,
-                          itemBuilder: (context, index) {
-                            final bill = _billsData![index];
-                            double billTotal = bill['total_amount'] is String
-                                ? double.tryParse(bill['total_amount']) ?? 0
-                                : bill['total_amount'] ?? 0;
-                            double billWater = bill['water_units'] is String
-                                ? double.tryParse(bill['water_units']) ?? 0
-                                : bill['water_units'] ?? 0;
-                            double billElectricity = bill['electricity_units']
-                                    is String
-                                ? double.tryParse(bill['electricity_units']) ?? 0
-                                : bill['electricity_units'] ?? 0;
+    final size = MediaQuery.of(context).size;
 
-                            return Card(
-                              color: Colors.white,
-                              elevation: 4,
-                              margin: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      // พื้นหลังโปร่งใส
+      backgroundColor: Colors.transparent,
+      // ใช้ Stack เพื่อวางพื้นหลังเต็มจอ
+      body: Stack(
+        children: [
+          // พื้นหลังสีส้ม + รูปภาพ
+          Container(
+            width: size.width,
+            height: size.height,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFF8800),
+              image: DecorationImage(
+                image: AssetImage("images/backgroundmain.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // เนื้อหาหลัก
+          SafeArea(
+            child: Column(
+              children: [
+                // เพิ่ม SizedBox เพื่อเลื่อนคอนเทนต์ลงมา
+                const SizedBox(height: 120),
+
+                // ส่วนหัว + ปุ่ม Back
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    children: [
+                      // ปุ่มย้อนกลับ (สีดำ)
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () {
+                          // กลับไปหน้า HomePage
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HomePage(
+                                userId: widget.userId,
+                                roomNumber: 0,
                               ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // ข้อความ "แจ้งซ่อม" ใช้ GoogleFonts.prompt
+                      Text(
+                        'บิลค่าน้ำค่าไฟ',
+                        style: GoogleFonts.prompt(
+                          textStyle: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // เช็ค loading / data
+                _isLoading
+                    ? const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : _billsData == null || _billsData!.isEmpty
+                        ? const Expanded(
+                            child: Center(child: Text("ไม่พบบิลของคุณ")),
+                          )
+                        : Expanded(
+                            child: SingleChildScrollView(
                               child: Padding(
-                                padding: const EdgeInsets.all(15.0),
+                                padding: const EdgeInsets.all(16.0),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 4, horizontal: 8),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: const Color(0xFFFF8800),
-                                                width: 2),
-                                            borderRadius: BorderRadius.circular(8),
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: _billsData!.length,
+                                      itemBuilder: (context, index) {
+                                        final bill = _billsData![index];
+                                        double billTotal =
+                                            bill['total_amount'] is String
+                                                ? double.tryParse(bill['total_amount']) ?? 0
+                                                : bill['total_amount'] ?? 0;
+                                        double billWater =
+                                            bill['water_units'] is String
+                                                ? double.tryParse(bill['water_units']) ?? 0
+                                                : bill['water_units'] ?? 0;
+                                        double billElectricity =
+                                            bill['electricity_units'] is String
+                                                ? double.tryParse(
+                                                      bill['electricity_units'],
+                                                    ) ??
+                                                    0
+                                                : bill['electricity_units'] ?? 0;
+
+                                        return Card(
+                                          color: Colors.white,
+                                          elevation: 4,
+                                          margin:
+                                              const EdgeInsets.symmetric(vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: Text(
-                                            'บิลที่ ${index + 1}',
-                                            style: GoogleFonts.prompt(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFFFF8800),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(15.0),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                        vertical: 4,
+                                                        horizontal: 8,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        border: Border.all(
+                                                          color:
+                                                              const Color(0xFFFF8800),
+                                                          width: 2,
+                                                        ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        'บิลที่ ${index + 1}',
+                                                        style: GoogleFonts.prompt(
+                                                          fontSize: 18,
+                                                          fontWeight: FontWeight.bold,
+                                                          color:
+                                                              const Color(0xFFFF8800),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ElevatedButton(
+                                                      onPressed: () => _showPaymentPopup(
+                                                        bill,
+                                                        index + 1,
+                                                      ),
+                                                      style:
+                                                          ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.green,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(8),
+                                                        ),
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                          horizontal: 20,
+                                                          vertical: 10,
+                                                        ),
+                                                      ),
+                                                      child: const Text(
+                                                        'ชำระเงิน',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Divider(color: Colors.grey.shade300),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'ค่าน้ำ: $billWater หน่วย',
+                                                  style:
+                                                      const TextStyle(fontSize: 16),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'ค่าไฟ: $billElectricity หน่วย',
+                                                  style:
+                                                      const TextStyle(fontSize: 16),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'ยอดรวม: $billTotal บาท',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () => _showPaymentPopup(bill, index + 1),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 20, vertical: 10),
-                                          ),
-                                          child: const Text(
-                                            'ชำระเงิน',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ],
+                                        );
+                                      },
                                     ),
-                                    const SizedBox(height: 10),
-                                    Divider(color: Colors.grey.shade300),
-                                    const SizedBox(height: 8),
-                                    Text('ค่าน้ำ: $billWater หน่วย',
-                                        style: const TextStyle(fontSize: 16)),
-                                    const SizedBox(height: 4),
-                                    Text('ค่าไฟ: $billElectricity หน่วย',
-                                        style: const TextStyle(fontSize: 16)),
-                                    const SizedBox(height: 4),
-                                    Text('ยอดรวม: $billTotal บาท',
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black)),
                                   ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                            ),
+                          ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

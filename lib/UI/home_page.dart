@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchUserData() async {
-    final url = Uri.parse('http://10.0.2.2:4000/api/users/${widget.userId}');
+    final url = Uri.parse('https://api.horplus.work/api/users/${widget.userId}');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -65,22 +65,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: _isLoading
-      
-          ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _currentIndex,
-              children: [
-                const NoticePage(),
-                HomeContent(
-                  userId: widget.userId,
-                  roomNumber: widget.roomNumber,
-                ),
-                ProfilePage(userId: widget.userId),
-              ],
-            ),
-            
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -105,7 +92,7 @@ class _HomePageState extends State<HomePage> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: _onTabTapped,
-            backgroundColor: const Color(0xFFFFF3E0),
+            backgroundColor: const Color.fromARGB(255, 255, 255, 255),
             selectedItemColor: const Color(0xFFFF8800),
             unselectedItemColor: Colors.black54,
             showSelectedLabels: true,
@@ -128,10 +115,39 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+      body: Stack(
+        children: [
+          // พื้นหลังสีส้ม + รูปภาพเต็มจอ
+          Container(
+            width: size.width,
+            height: size.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF8800), // สีพื้นหลังส้ม
+              image: const DecorationImage(
+                image: AssetImage("images/backgroundmain.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          // เนื้อหาหลัก (IndexedStack)
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : IndexedStack(
+                  index: _currentIndex,
+                  children: [
+                    const NoticePage(),
+                    HomeContent(
+                      userId: widget.userId,
+                      roomNumber: widget.roomNumber,
+                    ),
+                    ProfilePage(userId: widget.userId),
+                  ],
+                ),
+        ],
+      ),
     );
   }
 }
-
 
 // ===========================
 // HomeContent: เนื้อหาหลัก
@@ -149,83 +165,84 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
-      appBar: AppBar(
-        title: Text(
-          'HORPLUS',
-          style: GoogleFonts.poppins(
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
+      // ตั้งค่าสีพื้นหลังเป็นโปร่งใส เพื่อให้เห็นพื้นหลังของ HomePage
+      backgroundColor: Colors.transparent,
+      body: Center(
+        // ใช้ Center เพื่อให้คอนเทนต์อยู่กึ่งกลางจอ
+        child: SingleChildScrollView(
+          // หาก GridView มีเนื้อหามาก สามารถเลื่อนใน ScrollView ได้
+          child: ConstrainedBox(
+            // จำกัดความกว้างสูงสุด ไม่ให้ใหญ่เกินไปบนแท็บเล็ต
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 16.0,
+                mainAxisSpacing: 16.0,
+                childAspectRatio: 0.85,
+                children: [
+                  _buildMenuButton(
+                    context,
+                    icon: FontAwesomeIcons.fileInvoiceDollar,
+                    title: 'บิลค่าน้ำค่าไฟ',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WaterBillPage(userId: userId),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    context,
+                    icon: FontAwesomeIcons.clockRotateLeft,
+                    title: 'ประวัติการชำระ',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentHistoryPage(userId: userId),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    context,
+                    icon: FontAwesomeIcons.screwdriverWrench,
+                    title: 'แจ้งซ่อม',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReportRepairsPage(
+                            userId: userId,
+                            roomNumber: roomNumber,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    context,
+                    icon: FontAwesomeIcons.phone,
+                    title: 'เบอร์ติดต่อฉุกเฉิน',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EmergencyContactPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        backgroundColor: const Color(0xFFFF8800),
-        centerTitle: true,
-      ),
-      backgroundColor: const Color(0xFFFFF3E0),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20.0,
-          mainAxisSpacing: 20.0,
-          childAspectRatio: 0.85,
-          children: [
-            _buildMenuButton(
-              context,
-              icon: FontAwesomeIcons.fileInvoiceDollar,
-              title: 'บิลค่าน้ำค่าไฟ',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WaterBillPage(userId: userId),
-                  ),
-                );
-              },
-            ),
-            _buildMenuButton(
-              context,
-              icon: FontAwesomeIcons.clockRotateLeft,
-              title: 'ประวัติการชำระ',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PaymentHistoryPage(userId: userId),
-                  ),
-                );
-              },
-            ),
-            _buildMenuButton(
-              context,
-              icon: FontAwesomeIcons.screwdriverWrench,
-              title: 'แจ้งซ่อม',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ReportRepairsPage(
-                      userId: userId,
-                      roomNumber: roomNumber,
-                    ),
-                  ),
-                );
-              },
-            ),
-            _buildMenuButton(
-              context,
-              icon: FontAwesomeIcons.phone,
-              title: 'เบอร์ติดต่อฉุกเฉิน',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EmergencyContactPage(),
-                  ),
-                );
-              },
-            ),
-          ],
         ),
       ),
     );
@@ -241,35 +258,37 @@ class HomeContent extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           color: Colors.white,
           border: Border.all(
-            color: const Color(0xFFE8CFA8), // ✅ กรอบสีเบจอ่อน
-            width: 2,
+            color: const Color(0xFFE8CFA8),
+            width: 1.5, // ปรับให้บางลงเล็กน้อย
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.07), // ลดเงาให้เบาลง
               blurRadius: 8,
-              spreadRadius: 1,
+              spreadRadius: 2,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: const Color(0xFFFF6B00)),
-              const SizedBox(height: 8),
-              Text(title,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  )),
+              Icon(icon, size: 38, color: const Color(0xFFFF6B00)),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
         ),

@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://10.0.2.2:4000/api/login');
+    final url = Uri.parse('https://api.horplus.work/api/login');
     try {
       final response = await http.post(
         url,
@@ -92,75 +92,75 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final size =
+        MediaQuery.of(context).size; // ใช้ MediaQuery เพื่อให้ responsive
+
     return Scaffold(
       body: Stack(
         children: [
-          // 🎨 พื้นหลังลวดลาย
+          // พื้นหลังลวดลาย (ภาพมีส่วนบนเป็นสีส้ม ส่วนล่างเป็นสีขาว)
           Container(
+            width: size.width,
+            height: size.height,
             decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage("images/background_pattern.png"),
+              color: Color(0xFFFF8800), // สีพื้นหลังส้ม
+              image: const DecorationImage(
+                image: AssetImage("images/background_pattern.png"),
                 fit: BoxFit.cover,
-                opacity: 0.15,
               ),
-              color: Colors.orange.shade50,
             ),
           ),
 
-          // 📝 เนื้อหาหลัก
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'images/logohorplus.png',
-                    width: 120,
-                    height: 120,
-                  ),
-                  const SizedBox(height: 30),
+          // เนื้อหาหลักเลื่อนใน ScrollView
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                // เว้นพื้นที่ด้านบน ~40% ของจอ (ปรับมาก/น้อยตามต้องการ)
+                SizedBox(height: size.height * 0.4),
 
-                  // 🏠 การ์ดป้อนข้อมูล
-                  Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Text(
-                            'เข้าสู่ระบบ',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade800,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            controller: _emailController,
-                            label: 'Username',
-                            icon: Icons.person_outline,
-                            isPassword: false,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            controller: _passwordController,
-                            label: 'Password',
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                          ),
-                          const SizedBox(height: 30),
-                          _buildLoginButton(),
-                        ],
+                // โซนฟอร์มในส่วนสีขาว
+                Center(
+                  child: Column(
+                    children: [
+                      // โลโก้
+                      Image.asset(
+                        'images/logohorplus.png', // ใส่ path รูปโลโก้
+                        width: 120,
+                        height: 120,
                       ),
-                    ),
+                      const SizedBox(height: 40),
+
+                      // TextField Username
+                      _buildTextFieldContainer(
+                        child: _buildTextField(
+                          controller: _emailController,
+                          label: 'USERNAME',
+                          icon: Icons.account_circle,
+                          isPassword: false,
+                        ),
+                        width: size.width * 0.8,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // TextField Password
+                      _buildTextFieldContainer(
+                        child: _buildTextField(
+                          controller: _passwordController,
+                          label: 'Password',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                        ),
+                        width: size.width * 0.8,
+                      ),
+                      const SizedBox(height: 30),
+
+                      // ปุ่ม Login
+                      _buildLoginButton(size.width),
+                      const SizedBox(height: 40),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -168,28 +168,40 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // 📦 Container ช่วยกำหนดความกว้างของ TextField
+  Widget _buildTextFieldContainer(
+      {required Widget child, required double width}) {
+    return SizedBox(
+      width: width,
+      child: child,
+    );
+  }
+
   // 🏆 ปุ่มล็อกอิน
-  Widget _buildLoginButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _login,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFFF8800),
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 80),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
+  Widget _buildLoginButton(double screenWidth) {
+    return SizedBox(
+      width: screenWidth * 0.5,
+      height: 45,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _login,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFF8800),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 4,
         ),
-        elevation: 4,
+        child: _isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : const Text(
+                'Login',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
       ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(color: Colors.white),
-            )
-          : const Text(
-              'เข้าสู่ระบบ',
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
     );
   }
 
@@ -204,19 +216,13 @@ class _LoginPageState extends State<LoginPage> {
       controller: controller,
       obscureText: isPassword ? !_isPasswordVisible : false,
       decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Color(0xFFE8CFA8)),
-        ),
-        prefixIcon: Icon(icon, color: const Color(0xFFFF8800)),
+        hintText: label,
+        prefixIcon: Icon(icon, color: Colors.orange.shade800),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: const Color(0xFFFF8800),
+                  color: Colors.orange.shade800,
                 ),
                 onPressed: () {
                   setState(() {
@@ -225,7 +231,15 @@ class _LoginPageState extends State<LoginPage> {
                 },
               )
             : null,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15),
       ),
+      style: const TextStyle(fontSize: 16),
     );
   }
 }

@@ -22,8 +22,9 @@ class _NoticePageState extends State<NoticePage> {
 
   Future<List<dynamic>> fetchAnnouncements() async {
     try {
-      final response =
-          await http.get(Uri.parse('http://10.0.2.2:4000/api/announcements'));
+      final response = await http.get(
+        Uri.parse('https://api.horplus.work/api/announcements'),
+      );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -43,74 +44,85 @@ class _NoticePageState extends State<NoticePage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF3E0), // ✅ เปลี่ยนพื้นหลังเป็นสีพีชอ่อน
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFF8800), // ✅ สีส้มสด
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'การแจ้งเตือน',
-          style: GoogleFonts.poppins(
-            textStyle: const TextStyle(
-                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+      // พื้นหลังโปร่งใส เพื่อให้เห็น Stack ด้านใน
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // 1) พื้นหลังสีส้ม + รูปภาพเต็มจอ
+          Container(
+            width: size.width,
+            height: size.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF8800),
+              image: const DecorationImage(
+                image: AssetImage("images/backgroundmain.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshAnnouncements,
-        color: const Color(0xFFFF8800), // ✅ สีรีเฟรช
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder<List<dynamic>>(
-            future: _announcements,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'เกิดข้อผิดพลาด: ${snapshot.error}',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
-                  child: Text(
-                    'ไม่มีประกาศ',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                  ),
-                );
-              } else {
-                return ListView.separated(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.length,
-                  separatorBuilder: (context, index) => const Divider(
-                    color: Color(0xFFE8CFA8), // ✅ เส้นแบ่งสีเบจ
-                    thickness: 1.2,
-                    height: 20,
-                  ),
-                  itemBuilder: (context, index) {
-                    final announcement = snapshot.data![index];
-                    return _buildNoticeTile(
-                      icon: FontAwesomeIcons.bell,
-                      title: announcement['title'],
-                      subtitle: announcement['detail'],
-                      date: announcement['created_at'] != null
-                          ? announcement['created_at'].split('T')[0]
-                          : 'ไม่ทราบวันที่',
-                      context: context,
+          // 2) เนื้อหาหลัก: SafeArea + RefreshIndicator + FutureBuilder
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _refreshAnnouncements,
+              color: const Color(0xFFFF8800),
+              child: FutureBuilder<List<dynamic>>(
+                future: _announcements,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'เกิดข้อผิดพลาด: ${snapshot.error}',
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(color: Colors.red),
+                        ),
+                      ),
                     );
-                  },
-                );
-              }
-            },
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'ไม่มีประกาศ',
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    );
+                  } else {
+                    // เพิ่ม padding top: 80 เพื่อเลื่อนการ์ดลงจากขอบบน
+                    return ListView.separated(
+                      padding: const EdgeInsets.only(
+                        top: 135,
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: snapshot.data!.length,
+                      separatorBuilder: (context, index) => const SizedBox(
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final announcement = snapshot.data![index];
+                        return _buildNoticeTile(
+                          icon: FontAwesomeIcons.bell,
+                          title: announcement['title'] ?? 'ไม่มีข้อมูล',
+                          subtitle: announcement['detail'] ?? '',
+                          date: announcement['created_at'] != null
+                              ? announcement['created_at'].split('T')[0]
+                              : 'ไม่ทราบวันที่',
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -120,32 +132,33 @@ class _NoticePageState extends State<NoticePage> {
     required String title,
     required String subtitle,
     required String date,
-    required BuildContext context,
   }) {
     return Card(
-      color: Colors.white, // ✅ เปลี่ยนสีการ์ดเป็นสีขาว
-      elevation: 4, // ✅ เพิ่มเงาให้ดูมีมิติ
+      color: Colors.white,
+      elevation: 3,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         side: const BorderSide(
-          color: Color(0xFFE8CFA8), // ✅ ขอบสีเบจอ่อน
-          width: 1.5,
+          color: Color(0xFFE8CFA8),
+          width: 1,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ไอคอนวงกลม
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFFF8800).withOpacity(0.1),
               ),
-              child: Icon(icon, color: const Color(0xFFFF8800), size: 28),
+              child: Icon(icon, color: const Color(0xFFFF8800), size: 24),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
+            // ข้อความประกาศ
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,37 +166,30 @@ class _NoticePageState extends State<NoticePage> {
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.black,
-                      ),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
+                      fontSize: 14,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'โพสต์เมื่อ: $date',
                         style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF777777), // ✅ สีเทาอ่อน
-                          ),
+                          fontSize: 12,
+                          color: const Color(0xFF777777),
                         ),
                       ),
-                      Icon(Icons.access_time, size: 16, color: Colors.grey),
                     ],
                   ),
                 ],
