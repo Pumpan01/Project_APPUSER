@@ -310,37 +310,43 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
                           ),
                           const SizedBox(height: 8),
                           // ลดขนาดปุ่ม
-                          SizedBox(
-                            width: 120,
-                            height: 40,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submitReport,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF8800),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(
-                                    color: Color(0xFFE8CFA8),
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                              child: _isSubmitting
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    )
-                                  : Text(
-                                      'ส่งเรื่อง',
-                                      style: GoogleFonts.prompt(
-                                        textStyle: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 40,
+                                  child: ElevatedButton(
+                                    onPressed:
+                                        _isSubmitting ? null : _submitReport,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFFF8800),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        side: const BorderSide(
+                                          color: Color(0xFFE8CFA8),
+                                          width: 1.5,
                                         ),
                                       ),
                                     ),
-                            ),
-                          ),
+                                    child: _isSubmitting
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          )
+                                        : Text(
+                                            'ส่งเรื่อง',
+                                            style: GoogleFonts.prompt(
+                                              textStyle: const TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
                         ],
                       ),
                     ),
