@@ -10,10 +10,10 @@ class ReportRepairsPage extends StatefulWidget {
   final int roomNumber;
 
   const ReportRepairsPage({
-    super.key,
+    Key? key,
     required this.userId,
     required this.roomNumber,
-  });
+  }) : super(key: key);
 
   @override
   _ReportRepairsPageState createState() => _ReportRepairsPageState();
@@ -31,8 +31,8 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
   }
 
   Future<void> _fetchRepairList() async {
-    final url =
-        Uri.parse('https://api.horplus.work/api/repairs/${widget.userId}');
+    if (!mounted) return; // ป้องกัน context หาย
+    final url = Uri.parse('https://api.horplus.work/api/repairs/${widget.userId}');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -88,7 +88,9 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
         SnackBar(content: Text('เกิดข้อผิดพลาดในการเชื่อมต่อ: $e')),
       );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -114,13 +116,13 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
   }
 
   Future<void> _showSuccessPopup(BuildContext context) async {
+    if (!mounted) return; // ป้องกัน context หาย
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: Center(
             child: Text(
               'ส่งเรื่องเรียบร้อย',
@@ -155,6 +157,44 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
     );
   }
 
+  void _confirmDelete(int repairId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Text(
+            "ยืนยันการลบ",
+            style: GoogleFonts.prompt(
+              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          content: Text(
+            "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?",
+            style: GoogleFonts.prompt(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "ยกเลิก",
+                style: GoogleFonts.prompt(color: Colors.grey),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteReport(repairId);
+              },
+              child: Text("ลบ", style: GoogleFonts.prompt(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // กำหนดสีของสถานะ
   Color _getStatusColor(String? status) {
     switch (status?.trim()) {
       case 'เสร็จสิ้น':
@@ -170,228 +210,7 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
     }
   }
 
-  void _confirmDelete(int repairId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Text(
-            "ยืนยันการลบ",
-            style: GoogleFonts.prompt(
-              textStyle:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          content: Text(
-            "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?",
-            style: GoogleFonts.prompt(fontSize: 16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child:
-                  Text("ยกเลิก", style: GoogleFonts.prompt(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteReport(repairId);
-              },
-              child: Text("ลบ", style: GoogleFonts.prompt(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      // โปร่งใสเพื่อให้ Stack ด้านหลังเห็นพื้นหลัง
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // พื้นหลังสีส้ม + รูปภาพ
-          Container(
-            width: size.width,
-            height: size.height,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF8800),
-              image: const DecorationImage(
-                image: AssetImage("images/backgroundmain.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          // เนื้อหาหลัก
-          SafeArea(
-            child: Column(
-              children: [
-                // เพิ่ม SizedBox เพื่อเลื่อนคอนเทนต์ลงมา
-                const SizedBox(height: 120),
-
-                // ส่วนหัว + ปุ่ม Back
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(
-                    children: [
-                      // ปุ่มย้อนกลับ (สีดำ)
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () {
-                          // กลับไปหน้า HomePage
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HomePage(
-                                userId: widget.userId,
-                                roomNumber: widget.roomNumber,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      // ข้อความ "แจ้งซ่อม" ใช้ GoogleFonts.prompt
-                      Text(
-                        'แจ้งซ่อม',
-                        style: GoogleFonts.prompt(
-                          textStyle: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ฟอร์มแจ้งซ่อม (คงที่ ไม่เลื่อน)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Card(
-                    color: Colors.white.withOpacity(0.95),
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: const BorderSide(
-                        color: Color(0xFFE8CFA8),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        children: [
-                          _buildTitleBox('รายละเอียดปัญหา'),
-                          const SizedBox(height: 8),
-                          // ลดขนาด TextField ให้ไม่สูงมาก
-                          TextField(
-                            controller: _detailsController,
-                            maxLines: 3, // ลดจำนวนบรรทัดเหลือ 3
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE8CFA8),
-                                ),
-                              ),
-                              hintText: 'กรอกรายละเอียดปัญหา...',
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // ลดขนาดปุ่ม
-                          Row(
-                            children: [
-                              Expanded(
-                                child: SizedBox(
-                                  height: 40,
-                                  child: ElevatedButton(
-                                    onPressed:
-                                        _isSubmitting ? null : _submitReport,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFFF8800),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        side: const BorderSide(
-                                          color: Color(0xFFE8CFA8),
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _isSubmitting
-                                        ? const CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          )
-                                        : Text(
-                                            'ส่งเรื่อง',
-                                            style: GoogleFonts.prompt(
-                                              textStyle: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Expanded: ส่วนนี้จะเลื่อนเฉพาะรายการแจ้งซ่อม
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Card(
-                      color: Colors.white.withOpacity(0.95),
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        side: const BorderSide(
-                          color: Color(0xFFE8CFA8),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildTitleBox('รายการแจ้งซ่อมของคุณ'),
-                            const SizedBox(height: 10),
-                            _buildRepairList(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // TitleBox สำหรับหัวข้อย่อย
+  // วาดกล่องหัวข้อ
   Widget _buildTitleBox(String title) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -482,8 +301,7 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
 
               // สถานะ
               Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
                   color: _getStatusColor(repair['status']),
                   borderRadius: BorderRadius.circular(15),
@@ -491,8 +309,7 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
                 child: Text(
                   repair['status'] ?? 'ไม่มีข้อมูล',
                   style: GoogleFonts.prompt(
-                    textStyle:
-                        const TextStyle(color: Colors.white, fontSize: 14),
+                    textStyle: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
               ),
@@ -500,6 +317,183 @@ class _ReportRepairsPageState extends State<ReportRepairsPage> {
           ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // พื้นหลัง
+          Container(
+            width: size.width,
+            height: size.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF8800),
+              image: const DecorationImage(
+                image: AssetImage("images/backgroundmain.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                children: [
+                  const SizedBox(height: 120),
+
+                  // ส่วนหัว + ปุ่ม Back
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HomePage(
+                                  userId: widget.userId,
+                                  roomNumber: widget.roomNumber,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'แจ้งซ่อม',
+                          style: GoogleFonts.prompt(
+                            textStyle: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ฟอร์มแจ้งซ่อม
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Card(
+                      color: Colors.white.withOpacity(0.95),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: const BorderSide(
+                          color: Color(0xFFE8CFA8),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          children: [
+                            _buildTitleBox('รายละเอียดปัญหา'),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _detailsController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE8CFA8),
+                                  ),
+                                ),
+                                hintText: 'กรอกรายละเอียดปัญหา...',
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 40,
+                                    child: ElevatedButton(
+                                      onPressed: _isSubmitting ? null : _submitReport,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFFF8800),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          side: const BorderSide(
+                                            color: Color(0xFFE8CFA8),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                      child: _isSubmitting
+                                          ? const CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            )
+                                          : Text(
+                                              'ส่งเรื่อง',
+                                              style: GoogleFonts.prompt(
+                                                textStyle: const TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // รายการแจ้งซ่อม
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Card(
+                      color: Colors.white.withOpacity(0.95),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: const BorderSide(
+                          color: Color(0xFFE8CFA8),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTitleBox('รายการแจ้งซ่อมของคุณ'),
+                            const SizedBox(height: 10),
+                            _buildRepairList(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
