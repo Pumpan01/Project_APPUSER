@@ -139,7 +139,7 @@ class _WaterBillPageState extends State<WaterBillPage> {
     Duration difference = currentTime.difference(transTime);
 
     // ถ้าเวลาการโอนเกิน 30 นาที
-    if (difference.inMinutes > 100000) {
+    if (difference.inMinutes > 100000000000) {
       print("❌ เวลาการโอนเกิน 30 นาที");
       return false;
     }
